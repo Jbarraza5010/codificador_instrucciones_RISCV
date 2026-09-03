@@ -8,7 +8,7 @@ Para probar otra instruccion, editar la variable de abajo y volver a correr:
 import re
 import sys
 
-instruccion = "and x5, x3, x4"
+instruccion = "and x13, x3, x4"
 
 # ---------------------------------------------------------------------------
 # Unica fuente de valores de la ISA. Nada mas en este archivo conoce
@@ -80,51 +80,70 @@ def check_rango(valor: int, bits: int, etiqueta: str) -> None:
 
 # ---------------------------------------------------------------------------
 # Una funcion por formato. Cada una devuelve la lista de campos
-# (nombre, bit_alto, bit_bajo, valor) de la que salen despues el binario,
-# el hex y el desglose (una sola fuente de verdad).
+# (nombre, bit_alto, bit_bajo, valor, descripcion) de la que salen despues
+# el binario, el hex, el desglose y la explicacion (una sola fuente de verdad).
 # ---------------------------------------------------------------------------
-def campos_r(opcode, funct3, funct7, rd, rs1, rs2):
+def campos_r(mnemonico, opcode, funct3, funct7, rd, rs1, rs2):
+    op_desc = {"add": "la suma", "sub": "la resta", "and": "el AND logico", "or": "el OR logico"}[mnemonico]
+    if mnemonico == "add":
+        desc_funct7 = "0000000: identifica ADD (SUB usa 0100000 con el mismo opcode y funct3)"
+    elif mnemonico == "sub":
+        desc_funct7 = "0100000 distingue SUB de ADD (que usa 0000000)"
+    else:
+        desc_funct7 = "0000000: no se usa para distinguir variantes con este funct3"
     return [
-        ("funct7", 31, 25, funct7),
-        ("rs2",    24, 20, rs2),
-        ("rs1",    19, 15, rs1),
-        ("funct3", 14, 12, funct3),
-        ("rd",     11, 7,  rd),
-        ("opcode",  6, 0,  opcode),
+        ("funct7", 31, 25, funct7, desc_funct7),
+        ("rs2",    24, 20, rs2,    f"x{rs2}: segundo operando fuente de {op_desc}"),
+        ("rs1",    19, 15, rs1,    f"x{rs1}: primer operando fuente de {op_desc}"),
+        ("funct3", 14, 12, funct3, f"junto a funct7 selecciona {op_desc}"),
+        ("rd",     11, 7,  rd,     f"x{rd}: registro destino, recibe el resultado de {op_desc}"),
+        ("opcode",  6, 0,  opcode, "OP: operacion registro-registro (ALU)"),
     ]
 
 
-def campos_i(opcode, funct3, rd, rs1, imm):
+def campos_i(mnemonico, opcode, funct3, rd, rs1, imm):
+    if mnemonico in CARGAS:
+        ancho_desc = {"lb": "un byte con extension de signo", "lw": "una palabra de 32 bits"}[mnemonico]
+        return [
+            ("imm[11:0]", 31, 20, imm, f"{imm}: desplazamiento con signo sumado a x{rs1} para formar la direccion de memoria"),
+            ("rs1",       19, 15, rs1, f"x{rs1}: registro base de la direccion de memoria"),
+            ("funct3",    14, 12, funct3, f"ancho del acceso: {mnemonico} carga {ancho_desc}"),
+            ("rd",        11, 7,  rd,  f"x{rd}: registro destino, recibe el dato leido de memoria"),
+            ("opcode",     6, 0,  opcode, "LOAD: lectura de memoria"),
+        ]
+    op_desc = {"addi": "la suma", "andi": "el AND logico"}[mnemonico]
     return [
-        ("imm[11:0]", 31, 20, imm),
-        ("rs1",       19, 15, rs1),
-        ("funct3",    14, 12, funct3),
-        ("rd",        11, 7,  rd),
-        ("opcode",     6, 0,  opcode),
+        ("imm[11:0]", 31, 20, imm, f"{imm}: constante con signo extendida a 32 bits, operando de {op_desc}"),
+        ("rs1",       19, 15, rs1, f"x{rs1}: operando fuente de {op_desc}"),
+        ("funct3",    14, 12, funct3, f"selecciona la operacion: {op_desc}"),
+        ("rd",        11, 7,  rd,  f"x{rd}: registro destino, recibe el resultado de {op_desc}"),
+        ("opcode",     6, 0,  opcode, "OP-IMM: operacion con inmediato"),
     ]
 
 
-def campos_s(opcode, funct3, rs1, rs2, imm):
+def campos_s(mnemonico, opcode, funct3, rs1, rs2, imm):
+    ancho_desc = {"sb": "un byte", "sw": "una palabra de 32 bits"}[mnemonico]
     return [
-        ("imm[11:5]", 31, 25, imm >> 5),
-        ("rs2",       24, 20, rs2),
-        ("rs1",       19, 15, rs1),
-        ("funct3",    14, 12, funct3),
-        ("imm[4:0]",  11, 7,  imm),
-        ("opcode",     6, 0,  opcode),
+        ("imm[11:5]", 31, 25, imm >> 5, f"bits altos del desplazamiento {imm} respecto a la base"),
+        ("rs2",       24, 20, rs2,      f"x{rs2}: registro cuyo valor se escribe en memoria"),
+        ("rs1",       19, 15, rs1,      f"x{rs1}: registro base de la direccion de memoria"),
+        ("funct3",    14, 12, funct3,   f"ancho del acceso: {mnemonico} guarda {ancho_desc}"),
+        ("imm[4:0]",  11, 7,  imm,      f"bits bajos del desplazamiento {imm}"),
+        ("opcode",     6, 0,  opcode,   "STORE: almacenamiento en memoria"),
     ]
 
 
-def campos_b(opcode, funct3, rs1, rs2, imm):
+def campos_b(mnemonico, opcode, funct3, rs1, rs2, imm):
+    cond_desc = {"beq": "son iguales", "bne": "son distintos"}[mnemonico]
     return [
-        ("imm[12]",   31, 31, imm >> 12),
-        ("imm[10:5]", 30, 25, imm >> 5),
-        ("rs2",       24, 20, rs2),
-        ("rs1",       19, 15, rs1),
-        ("funct3",    14, 12, funct3),
-        ("imm[4:1]",  11, 8,  imm >> 1),
-        ("imm[11]",    7, 7,  imm >> 11),
-        ("opcode",     6, 0,  opcode),
+        ("imm[12]",   31, 31, imm >> 12, f"bit de signo del desplazamiento {imm}"),
+        ("imm[10:5]", 30, 25, imm >> 5,  f"bits 10:5 del desplazamiento {imm}"),
+        ("rs2",       24, 20, rs2,       f"x{rs2}: segundo operando de la comparacion"),
+        ("rs1",       19, 15, rs1,       f"x{rs1}: primer operando de la comparacion"),
+        ("funct3",    14, 12, funct3,    f"selecciona la condicion: {mnemonico} salta si x{rs1} y x{rs2} {cond_desc}"),
+        ("imm[4:1]",  11, 8,  imm >> 1,  "bits 4:1 del desplazamiento; el bit 0 es implicito (siempre 0) y no se almacena"),
+        ("imm[11]",    7, 7,  imm >> 11, f"bit 11 del desplazamiento {imm}, junto al opcode"),
+        ("opcode",     6, 0,  opcode,    "BRANCH: salto condicional"),
     ]
 
 
@@ -148,7 +167,7 @@ def parse_instruccion(linea: str):
         if len(operandos) != 3:
             raise ErrorCodificacion(f"{mnemonico} espera 3 operandos: rd, rs1, rs2")
         rd, rs1, rs2 = (parse_reg(t) for t in operandos)
-        campos = campos_r(opcode, funct3, funct7, rd, rs1, rs2)
+        campos = campos_r(mnemonico, opcode, funct3, funct7, rd, rs1, rs2)
 
     elif fmt == "I" and mnemonico in CARGAS:
         if len(operandos) != 2:
@@ -156,7 +175,7 @@ def parse_instruccion(linea: str):
         rd = parse_reg(operandos[0])
         imm, rs1 = parse_mem(operandos[1])
         check_rango(imm, 12, "el inmediato")
-        campos = campos_i(opcode, funct3, rd, rs1, imm)
+        campos = campos_i(mnemonico, opcode, funct3, rd, rs1, imm)
 
     elif fmt == "I":
         if len(operandos) != 3:
@@ -165,7 +184,7 @@ def parse_instruccion(linea: str):
         rs1 = parse_reg(operandos[1])
         imm = parse_imm(operandos[2])
         check_rango(imm, 12, "el inmediato")
-        campos = campos_i(opcode, funct3, rd, rs1, imm)
+        campos = campos_i(mnemonico, opcode, funct3, rd, rs1, imm)
 
     elif fmt == "S":
         if len(operandos) != 2:
@@ -173,7 +192,7 @@ def parse_instruccion(linea: str):
         rs2 = parse_reg(operandos[0])
         imm, rs1 = parse_mem(operandos[1])
         check_rango(imm, 12, "el inmediato")
-        campos = campos_s(opcode, funct3, rs1, rs2, imm)
+        campos = campos_s(mnemonico, opcode, funct3, rs1, rs2, imm)
 
     else:  # fmt == "B"
         if len(operandos) != 3:
@@ -184,14 +203,14 @@ def parse_instruccion(linea: str):
         if imm % 2 != 0:
             raise ErrorCodificacion(f"el desplazamiento debe ser par (bit 0 implicito): {imm}")
         check_rango(imm, 13, "el desplazamiento")
-        campos = campos_b(opcode, funct3, rs1, rs2, imm)
+        campos = campos_b(mnemonico, opcode, funct3, rs1, rs2, imm)
 
     return fmt, campos
 
 
 def ensamblar(campos) -> str:
     bits = ""
-    for _, hi, lo, valor in campos:
+    for _, hi, lo, valor, _ in campos:
         ancho = hi - lo + 1
         bits += format(valor & ((1 << ancho) - 1), f"0{ancho}b")
     return bits
@@ -210,23 +229,31 @@ def imprimir(texto: str, fmt: str, bits: int, campos) -> None:
     print(f"HEX: 0x{palabra:08X}")
     print()
     print("Campos:")
-    nombre_w = max(len(nombre) for nombre, _, _, _ in campos) + 2
-    bracket_w = max(len(bracket(hi, lo)) for _, hi, lo, _ in campos)
-    for nombre, hi, lo, valor in campos:
+    nombre_w = max(len(nombre) for nombre, _, _, _, _ in campos) + 2
+    bracket_w = max(len(bracket(hi, lo)) for _, hi, lo, _, _ in campos)
+    bin_w = max(hi - lo + 1 for _, hi, lo, _, _ in campos)
+    for nombre, hi, lo, valor, _ in campos:
         ancho = hi - lo + 1
-        binvalue = format(valor & ((1 << ancho) - 1), f"0{ancho}b")
-        print(f"  {nombre:<{nombre_w}}{bracket(hi, lo):<{bracket_w}} = {binvalue}")
+        crudo = valor & ((1 << ancho) - 1)
+        binvalue = format(crudo, f"0{ancho}b")
+        print(f"  {nombre:<{nombre_w}}{bracket(hi, lo):<{bracket_w}} = "
+              f"{binvalue:<{bin_w}}  decimal: {crudo}")
+    print()
+    print("Explicacion:")
+    for nombre, _, _, _, desc in campos:
+        print(f"  {nombre:<{nombre_w}}{desc}")
 
 
 def main() -> None:
+    texto = sys.argv[1] if len(sys.argv) > 1 else instruccion
     try:
-        fmt, campos = parse_instruccion(instruccion)
+        fmt, campos = parse_instruccion(texto)
         bits = ensamblar(campos)
     except ErrorCodificacion as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    imprimir(instruccion, fmt, bits, campos)
+    imprimir(texto, fmt, bits, campos)
 
 
 if __name__ == "__main__":
