@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Artefactos del toolchain
+# tools/validar.py regenera build/ en cada corrida.
+# evidencia/resultados.md SI se versiona: es la evidencia entregable.
+build/
+*.o
+*.elf
+*.bin
+
+# Editor y sistema
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

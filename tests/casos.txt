@@ -1,0 +1,63 @@
+# 36 casos de prueba: 12 instrucciones x 3 escenarios
+# (positivo / negativo / limite, segun aplique a cada instruccion).
+# Las lineas que empiezan con '#' son comentarios.
+
+# --- add (tipo R: sin inmediato; se varian los registros) ---
+add x5, x6, x7          # caso normal
+add x1, x0, x2          # registro x0 como fuente
+add x31, x30, x29       # registros maximos
+
+# --- sub ---
+sub x10, x11, x12       # caso normal
+sub x5, x5, x5          # mismo registro en los tres campos
+sub x31, x0, x31        # x0 y registro maximo
+
+# --- and ---
+and x7, x8, x9          # caso normal
+and x0, x1, x2          # destino x0 (resultado descartado)
+and x31, x31, x0        # registro maximo con x0
+
+# --- or ---
+or x13, x14, x15        # caso normal
+or x2, x0, x3           # x0 como fuente
+or x31, x29, x30        # registros maximos
+
+# --- addi ---
+addi x5, x6, 100        # inmediato positivo
+addi x7, x8, -100       # inmediato negativo
+addi x9, x10, 2047      # inmediato maximo representable
+
+# --- andi ---
+andi x11, x12, 255      # inmediato positivo
+andi x13, x14, -256     # inmediato negativo
+andi x15, x16, -2048    # inmediato minimo representable
+
+# --- lw ---
+lw x5, 8(x6)            # desplazamiento positivo
+lw x7, -8(x8)           # desplazamiento negativo
+lw x9, 2047(x10)        # desplazamiento maximo
+
+# --- lb ---
+lb x11, 4(x12)          # desplazamiento positivo
+lb x13, -1(x14)         # desplazamiento negativo
+lb x15, -2048(x16)      # desplazamiento minimo
+
+# --- sw ---
+sw x5, 16(x6)           # desplazamiento positivo
+sw x7, -16(x8)          # desplazamiento negativo
+sw x9, 2047(x10)        # desplazamiento maximo
+
+# --- sb ---
+sb x11, 1(x12)          # desplazamiento positivo
+sb x13, -1(x14)         # desplazamiento negativo
+sb x15, -2048(x16)      # desplazamiento minimo
+
+# --- beq ---
+beq x1, x2, 8           # salto hacia adelante
+beq x3, x4, -8          # salto hacia atras
+beq x5, x6, 0           # desplazamiento cero
+
+# --- bne ---
+bne x7, x8, 16          # salto hacia adelante
+bne x9, x10, -16        # salto hacia atras
+bne x11, x12, 4094      # salto maximo hacia adelante
