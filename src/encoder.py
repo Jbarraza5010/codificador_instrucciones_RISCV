@@ -1,6 +1,6 @@
 """Codificador de instrucciones RISC-V RV32I.
 
-Recibe una unica instruccion como argumento y muestra su codificacion de
+Recibe una unica instrucción como argumento y muestra su codificacion de
 32 bits, el desglose de los campos del formato correspondiente (R, I, S o B)
 y el significado de cada campo.
 """
@@ -32,14 +32,14 @@ MEM_RE = re.compile(r"^(-?\d+)\(\s*(x\d{1,2})\s*\)$")
 
 
 class ErrorCodificacion(Exception):
-    """Error de sintaxis o de rango al codificar la instruccion"""
+    """Error de sintaxis o de rango al codificar la instrucción"""
 
 
 def parse_reg(token: str) -> int:
     """Convierte un registro en un número entero"""
     m = REG_RE.match(token)
     if not m:
-        raise ErrorCodificacion("registro invalido")
+        raise ErrorCodificacion("registro inválido")
     n = int(m.group(1))
     if not 0 <= n <= 31:
         raise ErrorCodificacion("registro fuera de rango")
@@ -51,14 +51,14 @@ def parse_imm(token: str) -> int:
     try:
         return int(token)
     except ValueError:
-        raise ErrorCodificacion("inmediato invalido")
+        raise ErrorCodificacion("inmediato inválido")
 
 
 def parse_mem(token: str) -> tuple[int, int]:
     """Descompone el formato desplazamiento(registro) en un par (desplazamiento, registro)"""
     m = MEM_RE.match(token.strip())
     if not m:
-        raise ErrorCodificacion("sintaxis invalida")
+        raise ErrorCodificacion("sintáxis inválida")
     return int(m.group(1)), parse_reg(m.group(2))
 
 
@@ -141,7 +141,7 @@ def campos_b(mnemonico, opcode, funct3, rs1, rs2, imm):
 
 
 def parse_instruccion(linea: str):
-    """Traduce el texto de la instruccion a (formato, lista de campos)"""
+    """Traduce el texto de la instrucción a (formato, lista de campos)"""
     # Elimina espacios al principio y al final, y pasa a minusculas
     linea = linea.strip().lower()
     if not linea:

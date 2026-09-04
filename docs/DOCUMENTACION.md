@@ -288,7 +288,7 @@ Explicacion:
   opcode     BRANCH: salto condicional
 ```
 
-## 4. Validación contra el toolchain 
+## 4. Validación contra el toolchain
 
 ### 4.1 Metodología
 
@@ -298,7 +298,7 @@ instrucción:
 
 - valores positivos
 - valores negativos
-- valores limite
+- valores límite
 
 Para las cuatro instrucciones de tipo R no existe campo inmediato, por lo que
 sus tres escenarios varian los registros cubriendo el caso normal, el uso de

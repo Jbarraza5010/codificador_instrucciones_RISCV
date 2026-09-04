@@ -5,8 +5,6 @@ __pycache__/
 venv/
 
 # Artefactos del toolchain
-# tools/validar.py regenera build/ en cada corrida.
-# evidencia/resultados.md SI se versiona: es la evidencia entregable.
 build/
 *.o
 *.elf
