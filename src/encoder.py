@@ -58,7 +58,7 @@ def parse_mem(token: str) -> tuple[int, int]:
     """Descompone el formato desplazamiento(registro) en un par (desplazamiento, registro)"""
     m = MEM_RE.match(token.strip())
     if not m:
-        raise ErrorCodificacion("sintáxis inválida")
+        raise ErrorCodificacion("sintaxis inválida")
     return int(m.group(1)), parse_reg(m.group(2))
 
 
